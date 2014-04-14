@@ -37,4 +37,6 @@ $RECYCLE.BIN/
 # Project-specific
 
 *.parsed
+*.tar.bz2
+*initramfs*
 
