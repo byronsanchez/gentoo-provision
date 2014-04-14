@@ -590,15 +590,36 @@ installGrub() {
   mount -o remount,rw ${WORKDIR}/boot >> ${LOG} 2>&1;
   printf "done\n";
 
-  ROOT=$(awk -F'.' "/disk.*.purpose=root/ {print \$2\$3}" ${DATA});
-  ROOT="${ROOT}$(awk -F'.' '/disk.lvm.*.purpose=root/ {print $3"/"$4}' ${DATA})";
+  # Check if the root drive is a logical volume or a standard partition and
+  # build it's mounted path based on the result.
+  ROOTISLV=$(grep -i "disk.*.purpose=root" ${DATA} | awk -F'.' "m = \$2 ~ /lvm/ { print 1 } "\!"m { print 0 } ");
+  if [ "$ROOTISLV" == 1 ];
+  then
+    # Build the root path (to be passed to the kernel as an arg) to point to a
+    # logical volume
+    ROOT=$(awk -F'.' '/disk.*.purpose=root/ {print $3"/"$4}' ${DATA});
+  else
+    # Build the root path (to be passed to the kernel as an arg) to point to a
+    # standard partition
+    ROOT=$(awk -F'.' "/disk.*.purpose=root/ {print \$2\$3}" ${DATA});
+    ROOT="${ROOT}$(awk -F'.' '/disk.lvm.*.purpose=root/ {print $3"/"$4}' ${DATA})";
+  fi
 
   BOOT=$(awk -F'.' '/disk.*.purpose=\/boot/ { print $2$3}' ${DATA} | grep -v lvm);
   BOOT="${BOOT}$(awk -F'.' '/disk.lvm.*.purpose=\/boot/ { print $3"/"$4}' ${DATA})";
 
   printf "  - Configuring GRUB... ";
   logPrint "  - Configuring GRUB" >> ${LOG};
-  printf "default 0\ntimeout 5\n\ntitle Gentoo Linux (Hardened)\nroot (hd0,0)\nkernel /boot/kernel root=/dev/${ROOT} dolvm\ninitrd /boot/initramfs\n" > ${WORKDIR}/boot/grub/grub.conf;
+
+  INSTALLTYPE=$(getValue kernel.install);
+  if [ "${INSTALLTYPE}" = "build" ];
+  then
+    # prepare for the genkernel initramfs
+    printf "default 0\ntimeout 5\n\ntitle Gentoo Linux (Hardened)\nroot (hd0,0)\nkernel /boot/kernel root=/dev/ram0 real_root=/dev/${ROOT} dolvm\ninitrd /boot/initramfs\n" > ${WORKDIR}/boot/grub/grub.conf;
+  else
+    # a custom made and provided initramfs
+    printf "default 0\ntimeout 5\n\ntitle Gentoo Linux (Hardened)\nroot (hd0,0)\nkernel /boot/kernel root=/dev/${ROOT} dolvm\ninitrd /boot/initramfs\n" > ${WORKDIR}/boot/grub/grub.conf;
+  fi
   printf "done\n";
 
   printf "  - Installing into MBR... ";
