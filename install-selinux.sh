@@ -49,8 +49,9 @@ set_mount_context() {
   then
     typeset FILE=/etc/fstab;
     typeset META=$(initChangeFile ${FILE});
+    # remove any current tmp mounts
     grep -v '[ 	]/tmp' ${FILE} > ${FILE}.new;
-    echo "tmpfs   /tmp   tmpfs       defaults,noexec,nosuid,rootcontext=system_u:object_r:tmp_t   0 0" >> ${FILE}.new;
+    echo "tmpfs   /tmp   tmpfs defaults,noexec,nosuid,rootcontext=system_u:object_r:tmp_t:s0   0 0" >> ${FILE}.new;
     mv ${FILE}.new ${FILE};
     applyMetaOnFile ${FILE} ${META};
     commitChangeFile ${FILE} ${META};
@@ -65,24 +66,9 @@ set_mount_context() {
   then
     typeset FILE=/etc/fstab;
     typeset META=$(initChangeFile ${FILE});
-    grep -v '[ 	]/tmp' ${FILE} > ${FILE}.new;
-    echo "tmpfs   /run   tmpfs       defaults,noexec,nosuid,rootcontext=system_u:object_r:var_run_t   0 0" >> ${FILE}.new;
-    mv ${FILE}.new ${FILE};
-    applyMetaOnFile ${FILE} ${META};
-    commitChangeFile ${FILE} ${META};
-    logMessage "done\n";
-  else
-    logMessage "skipped\n";
-  fi
-
-  logMessage "   > Setting initrc_state_t context for rc-svcdir... ";
-  grep -q '^rc-svcdir.*' /etc/fstab;
-  if [ $? -ne 0 ];
-  then
-    typeset FILE=/etc/fstab;
-    typeset META=$(initChangeFile ${FILE});
-    grep -v '[ 	]rc-svcdir' ${FILE} > ${FILE}.new;
-    echo "rc-svcdir   /lib64/rc/init.d   tmpfs       rw,rootcontext=system_u:object_r:initrc_state_t,seclabel,nosuid,nodev,noexec,relatime,size=1024k,mode=755  0 0" >> ${FILE}.new;
+    # remove any current run mounts
+    grep -v '[ 	]/run' ${FILE} > ${FILE}.new;
+    echo "tmpfs   /run   tmpfs mode=0755,nosuid,nodev,rootcontext=system_u:object_r:var_run_t:s0   0 0" >> ${FILE}.new;
     mv ${FILE}.new ${FILE};
     applyMetaOnFile ${FILE} ${META};
     commitChangeFile ${FILE} ${META};
@@ -99,27 +85,19 @@ set_mount_context() {
   else
     logMessage "skipped\n";
   fi
-}
 
-set_arch_packages() {
-  logMessage "   > Setting ~arch packages... ";
-  mkdir -p /etc/portage/package.accept_keywords > /dev/null 2>&1;
-  cat > /etc/portage/package.accept_keywords/selinux-auto << EOF
-sys-libs/libselinux
-sys-libs/libsemanage
-sys-libs/libsepol
-sys-apps/policycoreutils
-sys-apps/checkpolicy
-app-admin/setools
-dev-python/sepolgen
-# build issue with audit-1.7.3, python3 related?
-=sys-process/audit-1.7.4
-sec-policy/*
-=sys-process/vixie-cron-4.1-r11
-=sys-kernel/linux-headers-2.6.36.1
-=net-misc/openssh-5.8_p1-r1
-EOF
-  logMessage "done\n";
+  grep -q 'selinuxfs' /etc/fstab;
+  if [ $? -ne 0 ];
+  then
+    typeset FILE=/etc/fstab;
+    typeset META=$(initChangeFile ${FILE});
+    # remove any current selinux mounts
+    grep -v '[ 	]/selinux' ${FILE} > ${FILE}.new;
+    echo "none   /selinux   selinuxfs       defaults   0 0" >> ${FILE}.new;
+    mv ${FILE}.new ${FILE};
+    applyMetaOnFile ${FILE} ${META};
+    commitChangeFile ${FILE} ${META};
+  fi
 }
 
 set_profile() {
