@@ -216,11 +216,26 @@ extractFiles() {
 
   cd ${WORKDIR};
   MIRROR=$(getValue weblocation | awk '{print $1}');
-  FETCH=$(awk -F'=' '/stage/ {print $2}' ${DATA});
   SNAP=$(awk -F'=' '/snapshot/ {print $2}' ${DATA});
-  printf "Downloading stage ${FETCH##*/}... ";
-  logPrint "Downloading stage ${FETCH##*/}." >> ${LOG};
-  wget ${MIRROR}/${FETCH} >> ${LOG} 2>&1;
+  STAGESTATUS=$(awk -F'=' '/stagestatus/ {print $2}' ${DATA});
+  printf "Downloading stage... ";
+  logPrint "Downloading stage." >> ${LOG};
+
+  if [ "$STAGESTATUS" = "latest" ];
+  then
+    STAGEPATTERN=$(awk -F'=' '/stagepattern/ {print $2}' ${DATA});
+    STAGEFILE="$(basename $STAGEPATTERN)"
+    STAGEPATH="${STAGEPATTERN%/*}"
+    wget -r -l1 --no-parent -A"${STAGEFILE}" ${MIRROR}/${STAGEPATH};
+    STAGEDESTPATH="$(find . -iname "${STAGEFILE}")";
+    STAGEDESTFILE="$(basename ${STAGEDESTPATH})"
+    mv ${STAGEDESTPATH} ${STAGEDESTFILE};
+    FETCH=${STAGEDESTFILE}
+  else
+    FETCH=$(awk -F'=' '/stage/ {print $2}' ${DATA});
+    wget ${MIRROR}/${FETCH} >> ${LOG} 2>&1;
+  fi
+
   if [ $? -ne 0 ];
   then
     printf "failed!\n";
