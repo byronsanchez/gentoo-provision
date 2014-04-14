@@ -32,8 +32,14 @@ export FAILED;
 
 [ -f master.lib.sh ] && source ./master.lib.sh || exit 1;
 
-initTools;
+# This does usage/help and that sort of stuff. Not necessary for this script.
+#initTools;
+# Initialize the 3rd file descriptor for logging purposes (since we are not
+# using initTools
+exec 3>&1;
 
+# Give timestamp in logging
+echo ">>> $(date +%Y%m%d-%H%M%S) - Starting log." >> ${LOG};
 
 ##
 ## Functions
