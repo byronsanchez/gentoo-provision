@@ -110,14 +110,6 @@ set_profile() {
   else
     logMessage "skipped\n";
   fi
-
-  logMessage "   > Setting PORTAGE_BINHOST... ";
-  typeset FILE=/etc/make.conf;
-  typeset META=$(initChangeFile ${FILE});
-  updateEqualConfFile etc.make.conf ${FILE};
-  applyMetaOnFile ${FILE} ${META};
-  commitChangeFile ${FILE} ${META};
-  logMessage "done\n";
 }
 
 set_python() {
@@ -155,23 +147,6 @@ configure_selinux() {
   logMessage "     - Installing checkpolicy again... ";
   installSoftware checkpolicy || die "Failed to install checkpolicy";
   logMessage "done\n";
-
-  logMessage "   > Storing POLICY_TYPES value in make.conf... ";
-  grep -q "POLICY_TYPES=\"$(getValue POLICY_TYPES)\"" /etc/make.conf;
-  if [ $? -ne 0 ];
-  then
-    typeset FILE=/etc/make.conf
-    typeset META=$(initChangeFile ${FILE});
-    
-    grep -v POLICY_TYPES ${FILE} > ${FILE}.new;
-    echo "POLICY_TYPES=\"$(getValue POLICY_TYPES)\"" >> ${FILE}.new;
-    mv ${FILE}.new ${FILE};
-    applyMetaOnFile ${FILE} ${META};
-    commitChangeFile ${FILE} ${META};
-    logMessage "done\n";
-  else
-    logMessage "skipped\n";
-  fi
 }
 
 label_system() {
