@@ -158,7 +158,7 @@ mountDisks() {
   vgchange -a y >> ${LOG};
   # Swap first
   SWAPS=$(awk -F'.' "/disk.*.purpose=swap/ {print \$2\$3}" ${DATA} | grep -v '^lvm');
-  LVMSWAPS=$(awk -F'.' "/disk.lvm.*.purpose=swap/ {print \$3/\$4}" ${DATA});
+  LVMSWAPS=$(awk -F'.' '/disk.lvm.*.purpose=swap/ {print $3"/"$4}' ${DATA});
   printf "Enabling swap space (${SWAPS} ${LVMSWAPS})... ";
   logPrint "Enabling swap space (${SWAPS} ${LVMSWAPS})." >> ${LOG};
   for SWAP in ${SWAPS} ${LVMSWAPS};
