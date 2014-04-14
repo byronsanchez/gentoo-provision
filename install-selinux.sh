@@ -39,7 +39,7 @@ export FAILED;
 exec 3>&1;
 
 # Give timestamp in logging
-echo ">>> $(date +%Y%m%d-%H%M%S) - Starting log." >> ${LOG};
+echo ">>> $(date +%Y%m%d-%H%M%S) - Starting log." >> ${LOG}; 
 
 
 set_mount_context() {
@@ -174,29 +174,6 @@ set_booleans() {
   logMessage "done\n";
 }
 
-users() {
-  DOUSERS=$(getValue testusers.enable);
-  if [ "${DOUSERS}" = "true" ];
-  then
-    logMessage "   > Creating user 'user'... ";
-    useradd -m -g users user;
-    printf "user:$(getValue testusers.user.password)\n" | chpasswd user;
-    logMessage "done\n";
-
-    logMessage "   > Creating user 'oper'... ";
-    useradd -m -g wheel oper;
-    printf "oper:$(getValue testusers.oper.password)\n" | chpasswd oper;
-    logMessage "done\n";
-
-    logMessage "   > Creating user 'test'... ";
-    useradd -m -g user test;
-    printf "test:$(getValue testusers.test.password)\n" | chpasswd test;
-    logMessage "done\n";
-  else
-    logMessage "   * Skipping creation of testusers as requested\n";
-  fi
-}
-
 fail_reboot() {
   typeset NEXT_STEP=$(echo ${STEPS} | awk '{print $2}');
   logMessage "   ** PLEASE REBOOT THE ENVIRONMENT AND CONTINUE WITH THE NEXT STEP (${NEXT_STEP})**\n";
@@ -206,24 +183,6 @@ fail_reboot() {
 ##
 ## Main
 ## 
-
-stepOK "overlay" && (
-logMessage ">>> Step \"overlay\" starting...\n";
-runStep enable_overlay;
-);
-nextStep;
-
-stepOK "arch" && (
-logMessage ">>> Step \"arch\" starting...\n";
-runStep set_arch_packages;
-);
-nextStep;
-
-stepOK "reboot_0" && (
-logMessage ">>> Step \"reboot_0\" starting...\n";
-runStep fail_reboot;
-);
-nextStep;
 
 stepOK "mountcontext" && (
 logMessage ">>> Step \"mountcontext\" starting...\n";
@@ -261,12 +220,6 @@ runStep label_system;
 );
 nextStep;
 
-stepOK "pam" && (
-logMessage ">>> Step \"pam\" starting...\n";
-runStep pam_run_init;
-);
-nextStep;
-
 stepOK "reboot_2" && (
 logMessage ">>> Step \"reboot_2\" starting...\n";
 runStep fail_reboot;
@@ -276,12 +229,6 @@ nextStep;
 stepOK "booleans" && (
 logMessage ">>> Step \"booleans\" starting...\n";
 runStep set_booleans;
-);
-nextStep;
-
-stepOK "users" && (
-logMessage ">>> Step \"users\" starting...\n";
-runStep users;
 );
 nextStep;
 
