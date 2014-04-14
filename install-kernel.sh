@@ -441,10 +441,14 @@ configureSystem() {
   logPrint "  - Preparing chroot environment" >> ${LOG};
   runChrootCommand env-update >> ${LOG} 2>&1;
 
-  printf "  - Enabling eth0\n";
-  logPrint "  - Enabling eth0" >> ${LOG};
-  runChrootCommand ln -sf /etc/init.d/net.lo /etc/init.d/net.eth0 >> ${LOG} 2>&1;
-  runChrootCommand rc-update add net.eth0 default >> ${LOG} 2>&1;
+  # Determine the network interface name based on what was passed to
+  # setup.conf.net
+  INTERFACENM=$(awk -F'[._=]' '/setup.conf.net.config_/ {print $5}' ${DATA} );
+
+  printf "  - Enabling ${INTERFACENM}\n";
+  logPrint "  - Enabling ${INTERFACENM}" >> ${LOG};
+  runChrootCommand ln -sf /etc/init.d/net.lo /etc/init.d/net.${INTERFACENM} >> ${LOG} 2>&1;
+  runChrootCommand rc-update add net.${INTERFACENM} default >> ${LOG} 2>&1;
 
   printf "  - Enabling sshd\n";
   logPrint "  - Enabling sshd" >> ${LOG};
