@@ -155,6 +155,7 @@ label_system() {
   mount -o bind / /mnt/gentoo;
   TYPE=$(awk -F'=' '/^SELINUXTYPE/ {print $2}' /etc/selinux/config);
   setfiles -r /mnt/gentoo /etc/selinux/${TYPE}/contexts/files/file_contexts /mnt/gentoo/dev || die "Failed to run setfiles";
+  setfiles -r /mnt/gentoo /etc/selinux/${TYPE}/contexts/files/file_contexts /mnt/gentoo/lib64 || die "Failed to run setfiles";
   umount /mnt/gentoo;
   logMessage "done\n";
 
