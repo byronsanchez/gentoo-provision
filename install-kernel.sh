@@ -404,7 +404,7 @@ generateFstab() {
 };
 
 configureSystem() {
-  HOSTNM=$(awk -F'=' '/setup.conf.hostname.HOSTNAME=/ {print $2}' ${DATA});
+  HOSTNM=$(awk -F'=' '/setup.conf.hostname.hostname=/ {print $2}' ${DATA});
   DOMNM=$(awk -F'=' '/setup.domainname=/ {print $2}' ${DATA});
   LOCALGEN=$(getValue setup.localegen.numentries);
   printf "Setting system specific configuration items:\n";
