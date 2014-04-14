@@ -519,6 +519,7 @@ installTools() {
   PACKAGES=$(awk -F'=' '/tools.install.packages=/ {print $2}' ${DATA});
   DRUNLEVEL=$(awk -F'=' '/tools.install.runlevel.default=/ {print $2}' ${DATA});
   BRUNLEVEL=$(awk -F'=' '/tools.install.runlevel.boot=/ {print $2}' ${DATA});
+  SRUNLEVEL=$(awk -F'=' '/tools.install.runlevel.sysinit=/ {print $2}' ${DATA});
   FAILEDPACKAGES="";
   HASFAILED=0;
   for PACKAGE in ${PACKAGES};
@@ -563,6 +564,13 @@ installTools() {
     printf "    Adding ${BOOTRUNLEVEL} to boot runlevel\n";
     logPrint "    Adding ${BOOTRUNLEVEL} to boot runlevel" >> ${LOG};
     runChrootCommand rc-update add ${BOOTRUNLEVEL} boot >> ${LOG} 2>&1;
+  done
+
+  for SYSINITRUNLEVEL in ${SRUNLEVEL};
+  do
+    printf "    Adding ${SYSINITRUNLEVEL} to sysinit runlevel\n";
+    logPrint "    Adding ${SYSINITRUNLEVEL} to sysinit runlevel" >> ${LOG};
+    runChrootCommand rc-update add ${SYSINITRUNLEVEL} sysinit >> ${LOG} 2>&1;
   done
 
   if [ ${HASFAILED} -gt 0 ];
