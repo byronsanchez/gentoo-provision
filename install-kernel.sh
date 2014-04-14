@@ -1,7 +1,9 @@
 #!/bin/sh
-
 # Licensed under GPL-3
 #
+# The base gentoo installation.
+
+SCRIPTDIR="`pwd`"
 
 DATA=$1;
 echo "${DATA}" | grep '^/' > /dev/null 2>&1;
@@ -10,7 +12,7 @@ then
   DATA="$(pwd)/${DATA}";
 fi
 
-STEPS=" disk mount extract setup configure tools bootloader kernel umount"
+STEPS=" disk mount extract setup configure tools bootloader kernel umount reboot"
 
 # Error handling
 if [ ! -f "${DATA}" ];
@@ -23,6 +25,7 @@ then
 fi
 
 source ./master.lib.sh;
+# initTools;
 
 ##
 ## Global variables
@@ -640,5 +643,11 @@ nextStep;
 stepOK "umount" && (
 printf ">>> Step \"umount\" starting...\n";
 umountDisks;
+);
+nextStep;
+
+stepOK "reboot" && (
+printf ">>> Kernel installation complete. Rebooting system...\n";
+reboot;
 );
 nextStep;
