@@ -287,7 +287,7 @@ extractFiles() {
 setupSystem() {
   printf "Setup make.conf... ";
   logPrint "Setup make.conf." >> ${LOG};
-  updateConfFile makeconf ${WORKDIR}/etc/make.conf;
+  updateConfFile makeconf ${WORKDIR}/etc/portage/make.conf;
   printf "done\n";
 
   printf "Prepare chroot... ";
