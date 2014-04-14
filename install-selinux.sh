@@ -163,24 +163,8 @@ label_system() {
   rlpkg -a -r || die "Failed to relabel the entire system";
   logMessage "done\n";
 
-  logMessage "   > Clearing udev persistent rule for eth0... ";
-  if [ -f /etc/udev/rules.d/70-persistent-net.rules ];
-  then
-    rm /etc/udev/rules.d/70-persistent-net.rules;
-    logMessage "done\n";
-  else
-    logMessage "skipped\n";
-  fi
-}
-
-pam_run_init() {
-  logMessage "   > Updating /etc/pam.d/run_init... ";
-  typeset FILE=/etc/pam.d/run_init
-  typeset META=$(initChangeFile ${FILE});
-  awk '{print} /^#%PAM-1.0/ {print "auth  sufficient  pam_rootok.so"}' ${FILE} > ${FILE}.new;
-  mv ${FILE}.new ${FILE};
-  applyMetaOnFile ${FILE} ${META};
-  commitChangeFile ${FILE} ${META};
+  logMessage "   > Adding selinux_gentoo to boot runlevel ";
+  rc-update add selinux_gentoo boot >> ${LOG} 2>&1;
   logMessage "done\n";
 }
 
