@@ -639,6 +639,7 @@ installGrub() {
 installKernel() {
   KERNELINSTALL=$(getValue kernelsources.install);
   KERNELPACKAGE=$(awk -F'=' '/kernel.package=/ {print $2}' ${DATA});
+
   if [ "${KERNELINSTALL}" = "provided" ];
   then
     KERNELVERSION=$(runChrootCommand emerge --color n -p ${KERNELPACKAGE} | grep ${KERNELPACKAGE} | sed -e "s:.*/\(${KERNELPACKAGE}[^ ]*\).*:\1:g");
@@ -656,6 +657,7 @@ installKernel() {
     runChrootCommand emerge --binpkg-respect-use=y -g ${KERNELPACKAGE} >> ${LOG} 2>&1;
     printf "done\n";
   fi
+
   INSTALLTYPE=$(getValue kernel.install);
   if [ "${INSTALLTYPE}" = "binary" ];
   then
@@ -663,34 +665,59 @@ installKernel() {
     KERNELINITRAMFS=$(getValue kernel.initramfs);
     printf "  - Fetching kernel binary (${KERNELBUILD##*/})... ";
     logPrint "  - Fetching kernel binary (${KERNELBUILD##*/})" >> ${LOG};
-    wget ${KERNELBUILD} -O ${WORKDIR}/usr/src/linux/linux-binary.tar.bz2 >> ${LOG} 2>&1;
+    cp -f ${SCRIPTDIR}/${KERNELBUILD} ${WORKDIR}/usr/src/linux/linux-binary.tar.bz2 >> ${LOG} 2>&1;
     printf "done\n";
 
     printf "  - Fetching initramfs (${KERNELINITRAMFS##*/})... ";
     logPrint "  - Fetching initramfs (${KERNELINITRAMFS##*/})" >> ${LOG};
-    wget ${KERNELINITRAMFS} -O ${WORKDIR}/boot/${KERNELINITRAMFS##*/} >> ${LOG} 2>&1;
+    cp -f ${SCRIPTDIR}/${KERNELINITRAMFS} ${WORKDIR}/boot/initramfs >> ${LOG} 2>&1;
     printf "done\n";
 
     printf "  - Installing kernel binary... ";
     runChrootCommand "tar xjf /usr/src/linux/linux-binary.tar.bz2 -C /" >> ${LOG} 2>&1;
-    runChrootCommand rm -f /boot/kernel /boot/initramfs;
-    runChrootCommand ln -s /boot/vmlinuz-* /boot/kernel;
-    runChrootCommand ln -s /boot/initramfs-* /boot/initramfs;
+    runChrootCommand mv -f /boot/vmlinuz-* /boot/kernel;
     printf "done\n";
   elif [ "${INSTALLTYPE}" = "build" ];
   then
     KERNELCONFIG=$(awk -F'=' '/kernel.config=/ {print $2}' ${DATA});
-    printf "  - Fetching kernel configuration (${KERNELCONFIG})... ";
-    logPrint "  - Fetching kernel configuration (${KERNELCONFIG})." >> ${LOG};
-    wget ${KERNELCONFIG} -O ${WORKDIR}/usr/src/linux/.config >> ${LOG} 2>&1;
+
+    # If a config file is provided, use that, else generate a base one to use
+    if [ -n "$KERNELCONFIG" ];
+    then
+      printf "  - Fetching kernel configuration (${KERNELCONFIG})... ";
+      logPrint "  - Fetching kernel configuration (${KERNELCONFIG})." >> ${LOG};
+      cp -f ${SCRIPTDIR}/${KERNELCONFIG} ${WORKDIR}/usr/src/linux/.config >> ${LOG} 2>&1;
+      printf "done\n";
+
+      printf "  - Building kernel... ";
+      logPrint "  - Building kernel" >> ${LOG};
+
+      runChrootCommand "cd /usr/src/linux; yes \"\" | make && make modules_install" >> ${LOG} 2>&1;
+    else
+      printf "  - Building kernel... ";
+      logPrint "  - Building kernel" >> ${LOG};
+
+      runChrootCommand "cd /usr/src/linux; yes \"\" | make oldconfig && make && make modules_install" >> ${LOG} 2>&1;
+    fi
+
     printf "done\n";
-    printf "  - Building kernel... ";
-    logPrint "  - Building kernel" >> ${LOG};
-    runChrootCommand "cd /usr/src/linux; yes \"\" | make oldconfig && make && make modules_install" >> ${LOG} 2>&1;
-    printf "done\n";
+
     printf "  - Installing kernel... ";
     logPrint "  - Installing kernel" >> ${LOG};
+
     cp ${WORKDIR}/usr/src/linux/arch/x86/boot/bzImage ${WORKDIR}/boot/kernel;
+
+    # make initramfs if build
+    if [ "${INSTALLTYPE}" = "build" ];
+    then
+      runChrootCommand emerge --binpkg-respect-use=y -g genkernel >> ${LOG} 2>&1;
+      runChrootCommand "genkernel --kernel-config=/usr/src/linux/.config --lvm --install initramfs" >> ${LOG} 2>&1;
+
+      # The automatic initramfs filename contains kernel data appended. Make sure 
+      # the name is the one our bootloader expects.
+      mv -f ${WORKDIR}/boot/initramfs-* ${WORKDIR}/boot/initramfs
+    fi
+
     printf "done\n";
   fi
 };
@@ -754,3 +781,4 @@ printf ">>> Kernel installation complete. Rebooting system...\n";
 reboot;
 );
 nextStep;
+
