@@ -461,7 +461,7 @@ configureSystem() {
 
   printf "  - Setup /etc/portage/* directories and files\n";
   logPrint "  - Setup /etc/portage/* directories and files" >> ${LOG};
-  PACKAGEFILES=$(listSectionOverview portage.package);
+  PACKAGEFILES=$(listSectionOverview portage.package | grep -v "portage.package.env");
   for PACKAGEFILE in ${PACKAGEFILES};
   do
     mkdir -p ${WORKDIR}/etc/portage/package.${PACKAGEFILE};
@@ -473,6 +473,35 @@ configureSystem() {
       do
         echo "${VALUE}" | sed -e 's:_SPACE_: :g' >> ${WORKDIR}/etc/portage/package.${PACKAGEFILE}/${FILE};
       done
+    done
+  done
+
+  printf "  - Setup /etc/portage/env directories and files\n";
+  logPrint "  - Setup /etc/portage/env directories and files" >> ${LOG};
+  mkdir -p ${WORKDIR}/etc/portage/env
+  PACKAGEENVFILES=$(listSectionOverview portage.env);
+  for PACKAGEENVFILE in ${PACKAGEENVFILES};
+  do
+    PACKAGEENVVARS=$(listSectionOverview portage.env.${PACKAGEENVFILE});
+    for PACKAGEENVVAR in ${PACKAGEENVVARS};
+    do
+      VARVALUE=$(awk -F'=' "/portage.env.${PACKAGEENVFILE}.${PACKAGEENVVAR}=/ {print \$2}" ${DATA});
+      VARDEF="${PACKAGEENVVAR}=\"${VARVALUE}\""
+      ENVFILE="env_${PACKAGEENVFILE}"
+      echo "${VARDEF}" >> ${WORKDIR}/etc/portage/env/${ENVFILE}
+    done
+  done
+
+  printf "  - Setup /etc/portage/package.env listings\n";
+  logPrint "  - Setup /etc/portage/package.env listings" >> ${LOG};
+  ENVAPPS=$(listSectionOverview portage.package.env);
+  for ENVAPP in ${ENVAPPS};
+  do
+    OVERRIDES=$(listSectionOverview portage.package.env.${ENVAPP});
+    for OVERRIDE in ${OVERRIDES};
+    do
+      OVERRIDEDEF="${ENVAPP} ${OVERRIDE}"
+      echo "${OVERRIDEDEF}" >> ${WORKDIR}/etc/portage/package.env
     done
   done
 
