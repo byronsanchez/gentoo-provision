@@ -414,6 +414,13 @@ configureSystem() {
   logPrint "  - Setup /etc/hosts" >> ${LOG};
   echo "127.0.0.1   ${HOSTNM}.${DOMNM} ${HOSTNM}" > ${WORKDIR}/etc/hosts;
 
+  ETCHOSTS=$(listSectionOverview setup.hosts);
+  for ETCHOST in ${ETCHOSTS};
+  do
+    IPVALUE=$(awk -F'=' "/setup.hosts.${ETCHOST}=/ {print \$2}" ${DATA});
+    echo "${IPVALUE}   ${ETCHOST}.${DOMNM} ${ETCHOST}" >> ${WORKDIR}/etc/hosts
+  done
+
   printf "  - Setup /etc/timezone... ";
   logPrint "  - Setup /etc/timezone" >> ${LOG};
   getValue setup.etc.timezone > ${WORKDIR}/etc/timezone;
