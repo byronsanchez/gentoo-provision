@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# - CONFFILE (path to the configuration file)
 # - STEPS (list of steps supported by the script)
 # - STEPFROM (step to start from - can be empty)
 # - STEPTO (step to go to - can be empty)
@@ -16,16 +15,13 @@
 ## Helper commands
 ##
 
-typeset CONFFILE=$1;
-export CONFFILE;
-
-typeset STEPS="overlay arch reboot_0 mountcontext profile python selinux reboot_1 label pam reboot_2 booleans users";
+typeset STEPS="mountcontext profile python selinux reboot_1 label reboot_2 booleans";
 export STEPS;
 
-typeset STEPFROM=$2;
+typeset STEPFROM=$1;
 export STEPFROM;
 
-typeset STEPTO=$3;
+typeset STEPTO=$2;
 export STEPTO;
 
 typeset LOG=/tmp/build.log;
