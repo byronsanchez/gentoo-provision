@@ -30,7 +30,8 @@ installSoftware() {
 }
 
 die() {
-  echo "!!! $*" >&3;
+  #echo "!!! $*" >&3;
+  echo "!!! $*";
   rm -f ${FAILED};
   exit 2;
 }
