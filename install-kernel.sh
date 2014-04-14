@@ -290,6 +290,25 @@ setupSystem() {
   updateConfFile makeconf ${WORKDIR}/etc/portage/make.conf;
   printf "done\n";
 
+  printf "  - Setup repos.conf...\n";
+  logPrint "  - Setup repos.conf..." >> ${LOG};
+  REPOS=$(listSectionOverview reposconf);
+  for REPO in ${REPOS};
+  do
+    reposconftitle="[$REPO]";
+    echo "$reposconftitle" >> ${WORKDIR}/etc/portage/repos.conf;
+
+    REPOCONFIGS=$(listSectionOverview reposconf.${REPO});
+    for REPOCONFIG in ${REPOCONFIGS};
+    do
+      value=$(awk -F'=' "/reposconf.${REPO}.${REPOCONFIG}=/ {print \$2}" ${DATA});
+      reposconfsetting="${REPOCONFIG}=$value";
+      echo "$reposconfsetting" >> ${WORKDIR}/etc/portage/repos.conf;
+    done
+
+    echo -e "" >> ${WORKDIR}/etc/portage/repos.conf;
+  done
+
   printf "Prepare chroot... ";
   logPrint "Prepare chroot." >> ${LOG};
   test -d ${WORKDIR}/etc || (mkdir ${WORKDIR}/etc && chmod 755 ${WORKDIR}/etc; )
