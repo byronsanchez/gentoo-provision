@@ -67,11 +67,11 @@ function mount_disks () {
   if [ "$PROVISION" = "host" ];
   then
     printf "Mounting disks for KVM host provisioning program...\n"
-    /bin/sh install-kernel.sh gentoo.host.conf mount mount
+    /bin/sh install-kernel.sh configs/gentoo.host.conf mount mount
   elif [ "$PROVISION" = "guest" ];
   then
     printf "Mounting disks for KVM guest provisioning program...\n"
-    /bin/sh install-kernel.sh gentoo.guest.conf mount mount
+    /bin/sh install-kernel.sh configs/gentoo.guest.conf mount mount
   else
     printf "Provision type not passed as kernel parameter (provision=TYPE).\n"
     printf "Aborting provision.\n"
@@ -93,11 +93,11 @@ function run_predisk_phase () {
   if [ "$PROVISION" = "host" ];
   then
     printf "Injecting KVM host provisioning program into hard drive...\n"
-    /bin/sh install-kernel.sh gentoo.host.conf disk mount
+    /bin/sh install-kernel.sh configs/gentoo.host.conf disk mount
   elif [ "$PROVISION" = "guest" ];
   then
     printf "Injection KVM guest provisioning program into hard drive...\n"
-    /bin/sh install-kernel.sh gentoo.guest.conf disk mount
+    /bin/sh install-kernel.sh configs/gentoo.guest.conf disk mount
   else
     printf "Provision type not passed as kernel parameter (provision=TYPE).\n"
     printf "Aborting provision.\n"
@@ -116,11 +116,11 @@ function run_postdisk_phase () {
   if [ "$PROVISION" = "host" ];
   then
     printf "Running KVM host provisioning program...\n"
-    /bin/sh install-kernel.sh gentoo.host.conf extract kernel
+    /bin/sh install-kernel.sh configs/gentoo.host.conf extract kernel
   elif [ "$PROVISION" = "guest" ];
   then
     printf "Running KVM guest provisioning program...\n"
-    /bin/sh install-kernel.sh gentoo.guest.conf extract kernel
+    /bin/sh install-kernel.sh configs/gentoo.guest.conf extract kernel
   else
     printf "Provision type not passed as kernel parameter (provision=TYPE).\n"
     printf "Aborting provision.\n"
@@ -235,10 +235,10 @@ then
   # Now we can unmount
   if [ "$PROVISION" = "host" ];
   then
-    /bin/sh install-kernel.sh gentoo.host.conf umount umount
+    /bin/sh install-kernel.sh configs/gentoo.host.conf umount umount
   elif [ "$PROVISION" = "guest" ];
   then
-    /bin/sh install-kernel.sh gentoo.guest.conf umount umount
+    /bin/sh install-kernel.sh configs/gentoo.guest.conf umount umount
   else
     printf "Provision type not passed as kernel parameter (provision=TYPE).\n"
     printf "Aborting provision.\n"
