@@ -255,9 +255,9 @@ fi
 if [ "$INSTALL_SELINUX" = 0 ];
 then
   message ">>> Skipping selinux setup...\n\n"
-  touch $DESTDIR/$selinuxb_statefile;
-  touch $DESTDIR/$selinuxc_statefile;
-  touch $DESTDIR/$finished_statefile;
+  touch $FINALDESTDIR/$selinuxb_statefile;
+  touch $FINALDESTDIR/$selinuxc_statefile;
+  touch $FINALDESTDIR/$finished_statefile;
   run_state_check;
 fi
 
