@@ -25,7 +25,13 @@ OpenVPN
 IMA
 EVM
 LUKS
-Truecrypt (enable CONFIG_FUSE_FS && CONFIG_CRYPTO_XTS)
+Truecrypt
+  CONFIG_FUSE_FS=y
+  CONFIG_CRYPTO_XTS=y
+iptables REDIRECTS 
+  CONFIG_NETFILTER_XT_TARGET_REDIRECT=y|m
+  CONFIG_IP_NF_TARGET_REDIRECT=y|m
+  CONFIG_BRIDGE_EBT_REDIRECT)=y|m
 [RAID] - when you use it
 
 ### Hosts/non-guests
