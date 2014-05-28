@@ -1,0 +1,21 @@
+Provisioning Process
+
+Local
+
+Build a bootable usb|pxe with the necessary mods
+Boot via usb and let the installation occur
+Create volumes if any
+Configure noip if necessary
+Apply puppet
+
+Remote
+
+Boot into the given iso image
+rsync the setup script
+run the install
+generate vpn certs for the node
+give the certs and conf to the node
+mount shares
+puppet apply
+
+
