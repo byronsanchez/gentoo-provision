@@ -64,14 +64,10 @@ finished_statefile=".state-finished"
 # Only needed when we are not booted into the main hard drive as root.
 function mount_disks () {
   # Determine the proper configuration to use.
-  if [ "$PROVISION" = "host" ];
+  if [ -n "$PROVISION" ];
   then
-    printf "Mounting disks for KVM host provisioning program...\n"
-    /bin/sh install-kernel.sh configs/gentoo.host.conf mount mount
-  elif [ "$PROVISION" = "guest" ];
-  then
-    printf "Mounting disks for KVM guest provisioning program...\n"
-    /bin/sh install-kernel.sh configs/gentoo.guest.conf mount mount
+    printf "Mounting disks for KVM ${PROVISION} provisioning program...\n"
+    /bin/sh install-kernel.sh configs/gentoo.${PROVISION}.conf mount mount
   else
     printf "Provision type not passed as kernel parameter (provision=TYPE).\n"
     printf "Aborting provision.\n"
@@ -90,14 +86,10 @@ function run_predisk_phase () {
   # Determine the proper configuration to use and run the script from the
   # writeable TMPDIR. This is volatile, so we're gonna have to move the program
   # to the persistent drive after creating the partitions.
-  if [ "$PROVISION" = "host" ];
+  if [ -n "$PROVISION" ];
   then
-    printf "Injecting KVM host provisioning program into hard drive...\n"
-    /bin/sh install-kernel.sh configs/gentoo.host.conf disk mount
-  elif [ "$PROVISION" = "guest" ];
-  then
-    printf "Injection KVM guest provisioning program into hard drive...\n"
-    /bin/sh install-kernel.sh configs/gentoo.guest.conf disk mount
+    printf "Injecting KVM ${PROVISION} provisioning program into hard drive...\n"
+    /bin/sh install-kernel.sh configs/gentoo.${PROVISION}.conf disk mount
   else
     printf "Provision type not passed as kernel parameter (provision=TYPE).\n"
     printf "Aborting provision.\n"
@@ -113,14 +105,10 @@ function run_predisk_phase () {
 # installs kernel and bootloader to the hard disk. does not reboot.
 function run_postdisk_phase () {
   # Determine the proper configuration to use.
-  if [ "$PROVISION" = "host" ];
+  if [ -n "$PROVISION" ];
   then
-    printf "Running KVM host provisioning program...\n"
-    /bin/sh install-kernel.sh configs/gentoo.host.conf extract kernel
-  elif [ "$PROVISION" = "guest" ];
-  then
-    printf "Running KVM guest provisioning program...\n"
-    /bin/sh install-kernel.sh configs/gentoo.guest.conf extract kernel
+    printf "Running KVM ${PROVISION} provisioning program...\n"
+    /bin/sh install-kernel.sh configs/gentoo.${PROVISION}.conf extract kernel
   else
     printf "Provision type not passed as kernel parameter (provision=TYPE).\n"
     printf "Aborting provision.\n"
@@ -233,12 +221,9 @@ then
   touch $selinuxa_statefile;
 
   # Now we can unmount
-  if [ "$PROVISION" = "host" ];
+  if [ -n "$PROVISION" ];
   then
-    /bin/sh install-kernel.sh configs/gentoo.host.conf umount umount
-  elif [ "$PROVISION" = "guest" ];
-  then
-    /bin/sh install-kernel.sh configs/gentoo.guest.conf umount umount
+    /bin/sh install-kernel.sh configs/gentoo.${PROVISION}.conf umount umount
   else
     printf "Provision type not passed as kernel parameter (provision=TYPE).\n"
     printf "Aborting provision.\n"
