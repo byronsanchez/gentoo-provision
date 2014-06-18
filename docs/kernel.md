@@ -32,6 +32,8 @@ iptables REDIRECTS
   CONFIG_NETFILTER_XT_TARGET_REDIRECT=y|m
   CONFIG_IP_NF_TARGET_REDIRECT=y|m
   CONFIG_BRIDGE_EBT_REDIRECT)=y|m
+Docker (NOTE: don't disable grsec stuff, just use sysctl on nodes that need more 
+permissive kernel grsec settings)
 [RAID] - when you use it
 
 ### Hosts/non-guests
