@@ -16,13 +16,17 @@
 # - POSTDISK - In this state, the provision script is being executed from the
 # actual hard drive via the mounts
 
-# Install ldap server?
-INSTALL_LDAPSERVER=1
 # Install selinux?
 INSTALL_SELINUX=0
+INSTALL_CONFIGURE=0
 
 source ./helpers/common.lib.sh;
 
+# The absolute path the program is stored in within the livedisk's filesystem.
+# This is a read-only filesystem (image.squashfs) so we need to move it to
+# temporary disk in order to run the disk partitioning setup. Then we need to
+# move the program to the hard disk to keep track of states!
+WORKDIR="/mnt/livecd/autoinstall"
 # TODO: Set this to match the workdir of the proper config file so that we don't
 # have to dupe and keep track of this value in 2 different configs.
 #
@@ -30,16 +34,19 @@ source ./helpers/common.lib.sh;
 # storage media relative to being booted into the live cd
 DESTDIR="/mnt/gentoo/autoinstall"
 # The final destination directory once booted into the hard drive. This is used
-# if further installations are configured (eg. selinux, ldapserver)
+# if further installations are configured (eg. selinux)
 FINALDESTDIR="/autoinstall"
 # the call to this script takes provision type as an argument (host or guest)
 PROVISION="$1"
-# The absolute path the program is stored in within the livedisk's filesystem.
-# This is a read-only filesystem (image.squashfs) so we need to move it to
-# temporary disk in order to run the disk partitioning setup. Then we need to
-# move the program to the hard disk to keep track of states!
-WORKDIR="/mnt/livecd/autoinstall"
 TMPDIR="/autoinstall"
+
+# If workdir does not exist, it means the autoinstall was not provided via a 
+# modded boot image. Therefore, the autoinstall script was already uploaded to 
+# the root dir (/autoinstall) by other means (eg. packer).
+if [ ! -e "${WORKDIR}" ];
+then
+  WORKDIR=""
+fi
 
 # Trap for when the program is killed. Just displays a message.
 trap 'message_error "\n\nAutoinstall aborted\n"; exit' SIGINT SIGTERM
@@ -50,7 +57,7 @@ POSTDISKSTATE=1
 SELINUXASTATE=2
 SELINUXBSTATE=3
 SELINUXCSTATE=4
-LDAPSERVER_STATE=5
+CONFIGURESTATE=0
 FINISHEDSTATE=6
 
 # State files
@@ -59,6 +66,7 @@ postdisk_statefile=".state-postdisk"
 selinuxa_statefile=".state-selinuxa"
 selinuxb_statefile=".state-selinuxb"
 selinuxc_statefile=".state-selinuxc"
+configure_statefile=".state-configure"
 finished_statefile=".state-finished"
 
 # Only needed when we are not booted into the main hard drive as root.
@@ -77,9 +85,12 @@ function mount_disks () {
 
 # partitions disk, creates filesystems and lvs. does not reboot.
 function run_predisk_phase () {
-  # FIRST COPY PROGRAM TO RAMDISK TMPDIR SO IT CAN CREATE THE PARTITIONS
-  # rsync slash == copy contents into dest as opposed to copy folder into dest
-  rsync -avug $WORKDIR/ $TMPDIR
+  if [ -e "${WORKDIR}" ];
+  then
+    # FIRST COPY PROGRAM TO RAMDISK TMPDIR SO IT CAN CREATE THE PARTITIONS
+    # rsync slash == copy contents into dest as opposed to copy folder into dest
+    rsync -avug $WORKDIR/ $TMPDIR
+  fi
 
   cd $TMPDIR;
 
@@ -99,7 +110,7 @@ function run_predisk_phase () {
   # Once the file systems are created and mounted, rsync the autoinstall scripts
   # to the persistent drive. Now we can keep track of states!
   # rsync slash == copy contents into dest as opposed to copy folder into dest
-  rsync -avug $WORKDIR/ $DESTDIR
+  rsync -avug $TMPDIR/ $DESTDIR
 }
 
 # installs kernel and bootloader to the hard disk. does not reboot.
@@ -108,7 +119,7 @@ function run_postdisk_phase () {
   if [ -n "$PROVISION" ];
   then
     printf "Running KVM ${PROVISION} provisioning program...\n"
-    /bin/sh install-kernel.sh configs/gentoo.${PROVISION}.conf extract kernel
+    /bin/sh install-kernel.sh configs/gentoo.${PROVISION}.conf extract cleanup
   else
     printf "Provision type not passed as kernel parameter (provision=TYPE).\n"
     printf "Aborting provision.\n"
@@ -119,11 +130,17 @@ function run_postdisk_phase () {
 # Injects autoinstallation of the setup scripts (the same local.d startup script
 # used to begin autoinstall from the livecd).
 function inject_startup_program () {
-  src_program_path="/etc/local.d/00provision.start";
-  dest_program_path="/mnt/gentoo/etc/local.d/00provision.start";
-  cp -f $src_program_path $dest_program_path;
-  # Change path of program to execute
-  sed -i 's:/mnt/livecd/autoinstall:/autoinstall:g' $dest_program_path;
+  # Injection only currently works if using a bootmodded image.
+  # TODO: find an alternate/better solution for situations where a bootmodded 
+  # image is not used (eg. packer)
+  if [ -e "${WORKDIR}" ];
+  then
+    src_program_path="/etc/local.d/00provision.start";
+    dest_program_path="/mnt/gentoo/etc/local.d/00provision.start";
+    cp -f $src_program_path $dest_program_path;
+    # Change path of program to execute
+    sed -i 's:/mnt/livecd/autoinstall:/autoinstall:g' $dest_program_path;
+  fi
 }
 
 function run_selinuxa_phase () {
@@ -141,7 +158,12 @@ function run_selinuxc_phase () {
   /bin/sh install-selinux.sh booleans booleans
 }
 
-function run_finished_state () {
+function run_configure_phase () {
+  printf "Running configuration management program...\n"
+  /bin/sh configure.sh
+}
+
+function run_finished_phase () {
   printf "Cleaning up installation files...\n";
   rm -rf $FINALDESTDIR
   rm -f /etc/local.d/00provision.start
@@ -152,6 +174,11 @@ function run_state_check () {
   # The predisk state is only BEFORE the program has been copied, so the only
   # check is to see if the progran is accessible.
   if [ -f "$WORKDIR/$predisk_statefile" ];
+  then
+    state=$PREDISKSTATE;
+  # also check the tmpdir in case the autoinstall scripts are uploaded (and not 
+  # through a modded boot image)
+  elif [ -f "$TMPDIR/$predisk_statefile" ];
   then
     state=$PREDISKSTATE;
   fi
@@ -173,6 +200,10 @@ function run_state_check () {
   if [ -f "$DESTDIR/$selinuxc_statefile" ] || [ -f "$FINALDESTDIR/$selinuxc_statefile" ];
   then
     state=$SELINUXCSTATE
+  fi
+  if [ -f "$DESTDIR/$configure_statefile" ] || [ -f "$FINALDESTDIR/$configure_statefile" ];
+  then
+    state=$CONFIGURESTATE
   fi
   if [ -f "$DESTDIR/$finished_statefile" ] || [ -f "$FINALDESTDIR/$finished_statefile" ];
   then
@@ -242,6 +273,13 @@ then
   message ">>> Skipping selinux setup...\n\n"
   touch $FINALDESTDIR/$selinuxb_statefile;
   touch $FINALDESTDIR/$selinuxc_statefile;
+  run_state_check;
+fi
+
+if [ "$INSTALL_CONFIGURE" = 0 ];
+then
+  message ">>> Skipping configuration step...\n\n"
+  touch $FINALDESTDIR/$configure_statefile;
   touch $FINALDESTDIR/$finished_statefile;
   run_state_check;
 fi
@@ -281,27 +319,26 @@ then
   message ">>> Starting SELINUXC phase...\n\n"
   run_selinuxc_phase;
 
-  # If ldap server is enabled, signal to start ldap server install. Otherwise we
-  # are done, so signal to perform clean up.
-  if [ "$INSTALL_LDAPSERVER" = 1];
-  then
-    touch $ldapserver_statefile;
-  else
-    touch $finished_statefile;
-  fi
+  touch $configure_statefile;
 
   run_state_check;
 fi
 
 # EXECUTED FROM hard disk /autoinstall
 cd $FINALDESTDIR;
-if [ "$state" = $LDAPSERVER_STATE ];
+if [ "$state" = $CONFIGURESTATE ];
 then
-  message ">>> Starting LDAPSERVER phase...\n\n"
-  run_ldapserver_phase;
+  message ">>> Starting CONFIGURE phase...\n\n"
+  run_configure_phase;
+
   touch $finished_statefile;
+
   run_state_check;
 fi
+
+
+# EXECUTED FROM hard disk /autoinstall
+cd $FINALDESTDIR;
 
 # EXECUTED FROM hard disk /autoinstall
 if [ "$state" = $FINISHEDSTATE ];
